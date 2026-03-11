@@ -32,8 +32,8 @@ def get_client() -> QdrantClient:
 def reset_collection(doc_id: str = None):
     """
     Reset the entire collection OR delete chunks belonging to a specific doc_id.
-    - If doc_id is None: wipes everything (original behaviour)
-    - If doc_id is provided: only removes that document's chunks (multi-doc support)
+    - If doc_id is None: wipes everything
+    - If doc_id is provided: only removes that document's chunks
     """
     client = get_client()
 
@@ -63,42 +63,78 @@ def reset_collection(doc_id: str = None):
             )
 
 
-def insert_chunks(chunks: list, vectors: list, doc_id: str = "default", filename: str = "unknown"):
+def insert_chunks(
+    chunks: list,
+    vectors: list,
+    doc_id: str = "default",
+    filename: str = "unknown"
+):
     """
     Insert pre-computed vectors + chunks into Qdrant.
-    Each point stores: text, doc_id, filename, chunk_index in its payload.
+
+    Accepts two formats for chunks:
+        1. List of strings — plain text chunks (no page info)
+        2. List of dicts  — page-aware chunks from pdf_loader.chunk_pages()
+           each dict must have: {text, page_num, chunk_index}
+
+    Every point stored in Qdrant will have this payload:
+        - text:        the chunk content
+        - doc_id:      which document this belongs to
+        - filename:    original PDF filename
+        - page_num:    page number in the source PDF (0 if unavailable)
+        - chunk_index: position within the document
     """
     client = get_client()
+    points = []
 
-    points = [
-        PointStruct(
-            id=abs(hash(f"{doc_id}_{i}")) % (2**63),
-            vector=vectors[i],
-            payload={
-                "text": chunk,
-                "doc_id": doc_id,
-                "filename": filename,
-                "chunk_index": i
-            }
+    for i, chunk in enumerate(chunks):
+
+        # Handle both plain strings and page-aware dicts
+        if isinstance(chunk, dict):
+            text = chunk.get("text", "")
+            page_num = chunk.get("page_num", 0)
+            chunk_index = chunk.get("chunk_index", i)
+        else:
+            text = chunk
+            page_num = 0
+            chunk_index = i
+
+        points.append(
+            PointStruct(
+                id=abs(hash(f"{doc_id}_{chunk_index}")) % (2**63),
+                vector=vectors[i],
+                payload={
+                    "text": text,
+                    "doc_id": doc_id,
+                    "filename": filename,
+                    "page_num": page_num,       # ← new: page citation
+                    "chunk_index": chunk_index
+                }
+            )
         )
-        for i, chunk in enumerate(chunks)
-    ]
 
     client.upsert(collection_name=COLLECTION_NAME, points=points)
 
 
-def retrieve(query_vector: list, top_k: int = 5, doc_id: str = None):
+def retrieve(
+    query_vector: list,
+    top_k: int = 10,
+    doc_id: str = None
+) -> list[dict]:
     """
     Retrieve the most relevant chunks for a query vector.
 
-    Returns a list of dicts with:
-        - text: the chunk content
-        - score: real cosine similarity score (0.0 - 1.0)
-        - filename: source document name
-        - chunk_index: position in original document
-        - doc_id: which document this came from
+    Note: default top_k is now 10 (was 3/5 before).
+    We retrieve more candidates here so the reranker has
+    enough to work with — it will trim down to top 3.
 
-    If doc_id is specified, search is restricted to that document only.
+    Returns a list of dicts with:
+        - text:        chunk content
+        - score:       cosine similarity as percentage (0-100)
+        - filename:    source document name
+        - page_num:    page number in source PDF
+        - chunk_index: position in document
+        - doc_id:      which document this came from
     """
     client = get_client()
 
@@ -120,6 +156,7 @@ def retrieve(query_vector: list, top_k: int = 5, doc_id: str = None):
             "text": point.payload.get("text", ""),
             "score": round(point.score * 100, 1),
             "filename": point.payload.get("filename", "unknown"),
+            "page_num": point.payload.get("page_num", 0),      # ← new
             "chunk_index": point.payload.get("chunk_index", 0),
             "doc_id": point.payload.get("doc_id", "default")
         }
