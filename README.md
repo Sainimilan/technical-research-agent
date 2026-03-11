@@ -1,229 +1,255 @@
+# ⚓ Data Harbor
+### A Fully Offline GPU-Accelerated RAG System
 
-# 📚 Technical & Coding Research Agent
-
-### Fully Offline GPU-Accelerated RAG System
-
-## 🚀 Overview
-
-The **Technical & Coding Research Agent** is a fully offline Retrieval-Augmented Generation (RAG) system that performs intelligent analysis over user-uploaded PDF documents.
-
-It combines:
-
-* 📄 PDF text extraction
-* ✂️ Context-aware chunking
-* 🧠 Semantic embeddings
-* 📦 Vector similarity search (Qdrant)
-* 🤖 Local LLM inference (Mistral via Ollama)
-* 🌐 Interactive Streamlit UI
-
-The entire system runs **locally**, with **no external API calls**, ensuring privacy, low cost, and GPU acceleration.
+> Upload documents. Ask questions. Get intelligent, cited answers — entirely on your local machine. No API keys. No internet. No data leaving your device.
 
 ---
 
-## 🧠 Architecture
+## 🚀 What This Does
 
-```
-User Query
-    ↓
-Embed Query
-    ↓
-Vector Similarity Search (Top-K)
-    ↓
-Context Retrieval
-    ↓
-Prompt Construction
-    ↓
-Local LLM (Mistral via Ollama)
-    ↓
-Structured Answer + Confidence Score
-```
-
-### Project Structure
-
-```
-rag-project/
-│
-├── app.py                     # Streamlit UI
-├── requirements.txt
-├── README.md
-│
-├── rag_core/
-│   ├── pdf_loader.py          # PDF extraction
-│   ├── chunking.py            # Text chunking logic
-│   ├── embeddings.py          # SentenceTransformer embeddings
-│   ├── vector_store.py        # Qdrant operations
-│   ├── llm.py                 # Ollama LLM interface
-│   └── rag_pipeline.py        # RAG orchestration
-```
-
-This modular structure ensures clear separation of concerns and maintainability.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer           | Technology                              |
-| --------------- | --------------------------------------- |
-| UI              | Streamlit                               |
-| Embeddings      | SentenceTransformers (all-MiniLM-L6-v2) |
-| Vector Database | Qdrant (Docker)                         |
-| LLM             | Mistral (via Ollama, local GPU)         |
-| Language        | Python                                  |
-| Deployment      | Fully Local                             |
+The **Data Harbor** is a production-grade Retrieval-Augmented Generation (RAG) system that lets you have a conversation with your documents. Upload one or more PDFs, ask questions in natural language, and get structured answers with source citations, page numbers, and confidence scores — all powered by a local LLM running on your own hardware.
 
 ---
 
 ## ✨ Features
 
-* ✅ Upload and analyze any PDF
-* ✅ Smart text chunking with overlap
-* ✅ Semantic vector search (Top-K retrieval)
-* ✅ Fast Mode (concise answers)
-* ✅ Deep Mode (structured technical analysis)
-* ✅ Confidence score based on retrieval
-* ✅ Retrieved context transparency
-* ✅ Fully offline, GPU-accelerated inference
+### Core Intelligence
+- 🧠 **Conversational Memory** — follows up on previous questions across the full session
+- 📄 **Multi-PDF Support** — upload and query across multiple documents simultaneously
+- 🔍 **Semantic Search** — finds relevant content by meaning, not just keywords
+- ⚡ **Streaming Responses** — answers appear token by token, ChatGPT-style
+
+### Retrieval Quality
+- ✂️ **Semantic Chunking** — splits documents by topic shifts, not fixed character counts
+- 🎯 **Cross-Encoder Reranking** — retrieves 10 candidates, reranks to top 3 for maximum accuracy
+- 📖 **Page Citations** — every source shows the exact page number it came from
+- 📊 **Real Confidence Scores** — actual cosine similarity scores, not fake percentages
+
+### User Interface
+- 💬 **Chat Interface** — full conversation history with message bubbles
+- 🤖 **Model Selector** — switch between any locally installed Ollama model live
+- 🗂️ **Document Library** — sidebar shows all uploaded docs with stats
+- 📋 **Document Dashboard** — pages, chunks, word count shown after upload
+- 🔎 **Source Cards** — expandable citations with filename, page, and relevance score
+
+### Engineering
+- 🔒 **Fully Offline** — zero external API calls, complete data privacy
+- 🐳 **No Docker Required** — Qdrant runs from a local file
+- 🏎️ **Batch Embedding** — 5-10x faster document processing
+- 🛡️ **Full Error Handling** — clean messages if Ollama or Qdrant isn't running
 
 ---
 
-## 🔐 Why Fully Offline?
+## 🏗️ Architecture
 
-* No API cost
-* No external data exposure
-* Works without internet
-* Faster inference on GPU
-* Suitable for private/enterprise environments
-
----
-
-## ⚙️ Setup Instructions
-
-### 1️⃣ Install Requirements
-
-Create virtual environment:
-
-```bash
-python -m venv venv
-venv\Scripts\activate
+```
+User Query
+    │
+    ▼
+┌─────────────────┐
+│   Streamlit UI  │  ← Chat interface, file upload, model selector
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  RAG Pipeline   │  ← Orchestrates all modules
+└────────┬────────┘
+         │
+    ┌────┴─────────────────────────┐
+    │                              │
+    ▼                              ▼
+┌──────────┐              ┌──────────────┐
+│ Embedder │              │  PDF Loader  │
+│(MiniLM)  │              │ (page-aware) │
+└────┬─────┘              └──────┬───────┘
+     │                           │
+     ▼                           ▼
+┌──────────┐              ┌──────────────┐
+│  Qdrant  │◄─────────────│   Chunker    │
+│  Vector  │              │  (semantic)  │
+│  Store   │              └──────────────┘
+└────┬─────┘
+     │  top-10 candidates
+     ▼
+┌──────────────┐
+│ Cross-Encoder│  ← reranks to top 3
+│  Reranker    │
+└──────┬───────┘
+       │  top-3 chunks + page numbers
+       ▼
+┌──────────────┐
+│  Mistral LLM │  ← via Ollama (local)
+│  via Ollama  │
+└──────┬───────┘
+       │
+       ▼
+  Structured Answer
+  + Page Citations
+  + Confidence Score
 ```
 
-Install dependencies:
+---
 
+## 📁 Project Structure
+
+```
+data-harbor/
+│
+├── app.py                   # Streamlit UI — chat interface, upload, sidebar
+├── requirements.txt         # Python dependencies
+├── README.md
+├── qdrant_storage/          # Local Qdrant database (auto-created)
+│
+└── rag_core/
+    ├── pdf_loader.py        # Page-aware PDF text extraction + metadata
+    ├── chunking.py          # Semantic chunking + fixed chunking fallback
+    ├── embeddings.py        # SentenceTransformer embeddings (cached)
+    ├── vector_store.py      # Qdrant operations + page number storage
+    ├── reranker.py          # Cross-encoder reranking (NEW)
+    ├── llm.py               # Ollama LLM + model listing
+    └── rag_pipeline.py      # Central orchestrator
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Streamlit |
+| Backend | Python 3.9+ |
+| Embeddings | SentenceTransformers `all-MiniLM-L6-v2` |
+| Reranking | CrossEncoder `ms-marco-MiniLM-L-6-v2` |
+| Vector Database | Qdrant (local file, no Docker) |
+| LLM | Mistral / any model via Ollama |
+| PDF Parsing | pypdf |
+
+---
+
+## ⚙️ Setup & Installation
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/Sainimilan/data-harbor.git
+cd data-harbor
+```
+
+### 2. Create a virtual environment
+```bash
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate
+```
+
+### 3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-### 2️⃣ Start Qdrant (Vector Database)
-
-Make sure Docker Desktop is running.
-
+### 4. Install and start Ollama
+Download from [ollama.com](https://ollama.com) then:
 ```bash
-docker run -d -p 6333:6333 qdrant/qdrant
-```
-
-Verify:
-
-```
-http://localhost:6333
-```
-
----
-
-### 3️⃣ Install & Run Ollama (Local LLM)
-
-Download Ollama:
-[https://ollama.com](https://ollama.com)
-
-Pull Mistral model:
-
-```bash
+ollama serve
 ollama pull mistral
 ```
 
-Test:
-
-```bash
-ollama run mistral
-```
-
-Then exit using:
-
-```
-/bye
-```
-
----
-
-### 4️⃣ Run Application
-
+### 5. Run the app
 ```bash
 streamlit run app.py
 ```
 
-Open browser at:
+---
+
+## 📦 Requirements
 
 ```
-http://localhost:8501
+streamlit
+qdrant-client
+sentence-transformers
+pypdf
+requests
 ```
 
 ---
 
-## 🧪 How It Works
+## 💻 Hardware Requirements
 
-1. User uploads PDF
-2. Text is extracted and chunked
-3. Each chunk is embedded into vectors
-4. Vectors are stored in Qdrant
-5. Query is embedded
-6. Top-K similar chunks retrieved
-7. Context injected into prompt
-8. Mistral generates structured answer
-
----
-
-## 📊 Confidence Score
-
-The system computes a confidence score based on the number of relevant chunks retrieved relative to the expected Top-K results.
-
-Future improvements may use similarity scores for more granular confidence estimation.
+| Component | Minimum | Recommended |
+|---|---|---|
+| CPU | Intel i5 / Ryzen 5 | Intel i7 / Ryzen 7 |
+| RAM | 8 GB | 16 GB |
+| GPU | Optional | NVIDIA RTX (for faster LLM inference) |
+| Storage | 5 GB free | 10 GB free |
+| OS | Windows 10/11, Linux, macOS | Any |
 
 ---
 
-## 🎯 Use Cases
+## 🎮 How to Use
 
-* Technical document analysis
-* Coding documentation summarization
-* Research paper breakdown
-* Structured learning roadmap extraction
-* Internal enterprise document Q&A
-
----
-
-## 🔮 Future Improvements
-
-* Multi-PDF support
-* Conversational memory
-* Similarity-based confidence scoring
-* Cloud deployment option
-* Authentication layer
+1. **Start the app** — `streamlit run app.py`
+2. **Upload a PDF** — click the upload area and select one or more PDFs
+3. **Process the document** — click the ⚙️ Process button and wait for the dashboard
+4. **Ask a question** — type in the chat input at the bottom
+5. **Choose your mode:**
+   - **Fast** — concise direct answer
+   - **Deep** — full structured report with Summary, Key Insights, Implementation Plan, Risks, and Conclusion
+6. **View sources** — expand the 🔎 Sources section to see page citations
+7. **Follow up** — ask follow-up questions, the system remembers the conversation
+8. **Switch models** — use the sidebar to switch between Ollama models
 
 ---
 
-## 🏆 Unique Selling Points
+## 🔍 Query Modes
 
-* Fully offline RAG pipeline
-* GPU-accelerated local inference
-* Transparent retrieval mechanism
-* Modular clean architecture
-* No dependency on external APIs
+### Fast Mode
+Best for: quick lookups, simple factual questions
+```
+"What is data cleaning?"
+"How many steps are in the data science lifecycle?"
+```
+
+### Deep Mode
+Best for: complex topics, study notes, detailed explanations
+```
+"Explain the full data science lifecycle with all its stages"
+"What are the risks and limitations of machine learning models?"
+```
 
 ---
 
-## 📜 License
+## 🧠 How RAG Works (Under the Hood)
 
-This project is built for academic and research demonstration purposes.
+```
+1. PDF uploaded
+        ↓
+2. Text extracted page by page (page numbers preserved)
+        ↓
+3. Semantic chunking — splits on topic shifts, not character count
+        ↓
+4. Each chunk embedded into a 384-dim vector (all-MiniLM-L6-v2)
+        ↓
+5. Vectors + metadata (page_num, filename, doc_id) stored in Qdrant
+        ↓
+── At query time ──
+        ↓
+6. Query embedded into vector
+        ↓
+7. Top-10 candidates retrieved by cosine similarity
+        ↓
+8. Cross-encoder reranks to top-3 (reads query + chunk together)
+        ↓
+9. Context + chat history injected into LLM prompt
+        ↓
+10. Mistral generates structured answer
+        ↓
+11. Answer streamed to UI with page citations + confidence score
+```
 
----
 
+## 📄 License
+
+MIT License — free to use, modify, and distribute.
