@@ -8,8 +8,8 @@ from rag_core.vector_store import get_collection_stats
 # ── Page Config ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Technical Research Agent",
-    page_icon="📚",
+    page_title="Data Harbor",
+    page_icon="⚓",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -229,8 +229,8 @@ with st.sidebar:
 
 # ── Main Area ────────────────────────────────────────────────────────────────
 
-st.title("📚 Technical Research Agent")
-st.caption("Fully offline · GPU-accelerated · Multi-document · Semantic RAG")
+st.title("⚓ Data Harbor")
+st.caption("Your offline document intelligence hub · GPU-accelerated · Multi-document · Semantic RAG")
 
 # ── Document Upload ──────────────────────────────────────────────────────────
 
